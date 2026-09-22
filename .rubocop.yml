@@ -1,0 +1,46 @@
+AllCops:
+  TargetRubyVersion: 3.1
+  NewCops: enable
+  Exclude:
+    - "vendor/**/*"
+    - "spec/fixtures/**/*"
+
+# Prose in comments and specs reads better without arbitrary width limits.
+Layout/LineLength:
+  Max: 110
+  AllowedPatterns: ['\A\s*#']
+
+Metrics/MethodLength:
+  Max: 25
+Metrics/AbcSize:
+  Max: 25
+Metrics/BlockLength:
+  Exclude: ["spec/**/*"]
+Metrics/ClassLength:
+  Max: 150
+
+# Documented deliberately in the README instead of per-class.
+Style/Documentation:
+  Enabled: false
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+# The repo is LF in git; rubocop on Windows would otherwise demand CRLF.
+Layout/EndOfLine:
+  EnforcedStyle: lf
+
+# Both are flat dispatch tables over HTTP status / header signatures. Splitting
+# them into predicate methods would scatter the mapping rather than clarify it.
+Metrics/CyclomaticComplexity:
+  Max: 10
+
+# "q" is the query parameter name SerpApi uses; "li"/"r" are node and row
+# locals in parsers. Renaming them would make the code read worse, not better.
+Naming/MethodParameterName:
+  AllowedNames: [q, li, r, i, id, to]
+
+# Engines::GoogleBooks#volume and #parse are flat field maps from one JSON
+# shape to another. The branch count is the field count.
+Metrics/AbcSize:
+  Max: 30

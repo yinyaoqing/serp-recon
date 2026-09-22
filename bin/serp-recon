@@ -1,0 +1,71 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+$LOAD_PATH.unshift File.expand_path("../lib", __dir__)
+require "serp_recon"
+require "json"
+
+USAGE = <<~TXT.freeze
+  serp-recon - SERP reachability probing and parsing
+
+  Usage:
+    serp-recon probe                       Probe the recon target list
+    serp-recon search <engine> <query>     Fetch + parse, print the JSON envelope
+    serp-recon engines                     List available engines
+
+  Engines: #{SerpRecon::ENGINES.keys.join(', ')}
+
+  Env:
+    GOOGLE_BOOKS_KEY   API key for the google_books engine
+TXT
+
+# The same targets as docs/recon-2026-09-22.md, so the doc can be regenerated.
+TARGETS = {
+  "wikipedia" => "https://en.wikipedia.org/w/index.php?search=ruby+programming&title=Special:Search&fulltext=1",
+  "google books" => "https://www.google.com/search?tbm=bks&q=ruby+programming",
+  "books.google" => "https://books.google.com/books?q=ruby+programming&btnG=Search+Books",
+  "books api" => "https://www.googleapis.com/books/v1/volumes?q=ruby+programming&maxResults=2",
+  "g2 reviews" => "https://www.g2.com/products/slack/reviews",
+  "g2 sitemap" => "https://www.g2.com/sitemaps/sitemap_index.xml.gz",
+  "trustpilot" => "https://www.trustpilot.com/review/www.amazon.com",
+  "qwant api" => "https://api.qwant.com/v3/search/web?q=ruby&count=10&locale=en_US&offset=0&device=desktop"
+}.freeze
+
+# Not a content target: fetched to show the stated policy was read before the
+# content paths were requested. Excluded from the reachability count, because
+# "their robots.txt is served" is not evidence that anything else is.
+CONTROLS = {
+  "g2 robots.txt" => "https://www.g2.com/robots.txt"
+}.freeze
+
+case ARGV.shift
+when "probe"
+  probe = SerpRecon::Probe.new
+  findings = probe.run(TARGETS)
+  controls = probe.run(CONTROLS)
+
+  puts SerpRecon::Probe.format_table(findings + controls)
+  reachable = findings.count(&:reachable?)
+  puts "\n#{reachable}/#{findings.size} content targets reachable by a plain HTTP client."
+  puts "(#{CONTROLS.keys.join(', ')} listed as a control, not counted.)"
+when "search"
+  engine = ARGV.shift or abort(USAGE)
+  query  = ARGV.join(" ")
+  abort(USAGE) if query.empty?
+  begin
+    puts JSON.pretty_generate(SerpRecon.search(engine: engine, q: query))
+  rescue SerpRecon::JavaScriptGateError => e
+    warn "JS gate: #{e.message}"
+    exit 2
+  rescue SerpRecon::FetchError => e
+    warn "fetch failed: #{e.message}"
+    exit 1
+  end
+when "engines"
+  SerpRecon::ENGINES.each do |name, klass|
+    puts format("%<name>-14s %<key>-16s live_fetch=%<live>s",
+                name: name, key: klass.results_key, live: klass.live_fetch?)
+  end
+else
+  puts USAGE
+end
