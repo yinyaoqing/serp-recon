@@ -47,7 +47,7 @@ client written against their Google APIs can read it without a translation layer
 ## What the recon found
 
 Measured 2026-09-22 from a residential connection in Taiwan, one request each.
-Full writeup: [docs/recon-2026-09-22.md](docs/recon-2026-09-22.md).
+Full writeup: [English](docs/recon-2026-09-22.md) · [繁體中文](docs/recon-2026-09-22.zh-TW.md).
 
 | Target | Status | Verdict |
 |---|---|---|
